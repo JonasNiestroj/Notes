@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import ReactDOM from "react-dom";
 import Canvas from "../presentational/Canvas";
+import Menu from "../presentational/Menu";
 
 class CanvasContainer extends Component {
     constructor(){
@@ -11,13 +12,21 @@ class CanvasContainer extends Component {
             prevPos: { offsetX: 0, offsetY: 0 },
             line: [],
             ctx: null,
-            canvas: null
+            canvas: null,
+            color: '#EE92C2',
+            rubber: false,
+            text: false,
+            textBoxes: []
         };
 
         this.onMouseDown = this.onMouseDown.bind(this);
         this.onMouseMove = this.onMouseMove.bind(this);
         this.endPaintEvent = this.endPaintEvent.bind(this);
         this.updateCanvas = this.updateCanvas.bind(this);
+        this.redClick = this.redClick.bind(this);
+        this.blueClick = this.blueClick.bind(this);
+        this.rubberClick = this.rubberClick.bind(this);
+        this.textClick = this.textClick.bind(this);
     }
 
     updateCanvas(ref) {
@@ -25,9 +34,53 @@ class CanvasContainer extends Component {
     }
 
     onMouseDown({ nativeEvent }){
-        const { offsetX, offsetY } = nativeEvent;
-        this.isPainting = true;
-        this.prevPos = { offsetX, offsetY }
+        if(this.state.text){
+            this.isPainting = false;
+            var box = document.createElement('div');
+            box.style.position = 'absolute';
+            console.log(nativeEvent);
+            box.style.left = nativeEvent.clientX + 'px';
+            box.style.top = nativeEvent.clientY + 'px';
+            box.style.width = 'auto';
+            box.style.height = 'auto';
+            box.style.minWidth = '200px';
+            box.style.minHeight = '100px';
+            box.style.border = '1px solid';
+            box.tabIndex = '0';
+
+            box.onkeydown = function(event){
+                if(event.keyCode === 13){
+                    event.target.innerHTML += "<br>";
+                }
+                else if(event.keyCode === 8){
+                    event.target.innerHTML = event.target.innerHTML.substring(0, event.target.innerHTML.length - 1);
+                }
+                else{
+                    event.target.innerHTML += event.key;
+                }
+                event.preventDefault();
+            }
+
+            box.onblur = function(event){
+                event.target.style.border = '0px';
+            }
+
+            document.body.appendChild(box);
+            
+            this.state.textBoxes.push(box);
+
+            box.focus();
+
+            // Focus only works in settimeout
+            setTimeout(() => {
+                box.focus()
+            }, 0);
+        }
+        else{
+            const { offsetX, offsetY } = nativeEvent;
+            this.isPainting = true;
+            this.prevPos = { offsetX, offsetY }
+        }
     }
 
     onMouseMove({ nativeEvent }) {
@@ -37,10 +90,10 @@ class CanvasContainer extends Component {
             const positionData = {
                 start: this.prevPos ,
                 stop: offsetData,
-              };
-
+            };
             this.state.line = this.state.line.concat(positionData);
-            this.paint(this.prevPos, offsetData, '#EE92C2')
+
+            this.paint(this.prevPos, offsetData, this.color);
         }
     }
 
@@ -54,12 +107,22 @@ class CanvasContainer extends Component {
         const { offsetX, offsetY } = currPos;
         const { offsetX: x, offsetY: y } = prevPos;
 
+        this.ctx.lineWidth = 5;
         this.ctx.beginPath();
-        this.ctx.strokeStyle = color;
+
+        if(this.state.rubber){
+            this.ctx.globalCompositeOperation = "destination-out";
+        }
+        else{
+            this.ctx.globalCompositeOperation = "source-over";
+            this.ctx.strokeStyle = this.state.color;
+        }
 
         this.ctx.moveTo(x, y);
         this.ctx.lineTo(offsetX, offsetY);
+
         this.ctx.stroke();
+
         this.prevPos = { offsetX, offsetY };
     }
 
@@ -72,10 +135,36 @@ class CanvasContainer extends Component {
         this.ctx.lineWidth = 5;
     }
 
+    redClick(){
+        this.state.color = '#ff0000';
+        this.state.rubber = false;
+        this.state.text = false;
+    }
+
+    blueClick(){
+        this.state.color = '#0000ff';
+        this.state.rubber = false;
+        this.state.text = false;
+    }
+
+    rubberClick(){
+        this.state.rubber = true;
+        this.state.text = false;
+    }
+
+    textClick(){
+        this.state.text = true;
+    }
+
     render(){
         return (
-            <Canvas onMouseDown={this.onMouseDown} endPaintEvent={this.endPaintEvent}
-                onMouseMove={this.onMouseMove} updateCanvas={this.updateCanvas} />
+            <div>
+                <Menu redClick={this.redClick} blueClick={this.blueClick} rubberClick={this.rubberClick}
+                    textClick={this.textClick}></Menu>
+                <Canvas onMouseDown={this.onMouseDown} endPaintEvent={this.endPaintEvent}
+                    onMouseMove={this.onMouseMove} updateCanvas={this.updateCanvas} />
+            </div>
+
         );
     }
 }
