@@ -33,12 +33,30 @@ class CanvasContainer extends Component {
         this.canvas = ref;
     }
 
-    onMouseDown({ nativeEvent }){
+    onMouseDown(nativeEvent){
         if(this.state.text){
+            var event = nativeEvent;
+            var textBoxFound = false;
+            for(var i = 0; i < this.state.textBoxes.length; i++){
+                var item = this.state.textBoxes[i];
+                var mouseX = event.clientX;
+                var mouseY = event.clientY;
+                var x = item.offsetLeft;
+                var y = item.offsetTop;
+                var xWidth = x + item.offsetWidth;
+                var yWidth = y + item.offsetHeight;
+                if(mouseX > x && mouseX < xWidth && mouseY > y && mouseY < yWidth){
+                    textBoxFound = true;
+                    item.focus();
+                }
+            }
+            if(textBoxFound){
+                nativeEvent.preventDefault();
+                return false;
+            }
             this.isPainting = false;
             var box = document.createElement('div');
             box.style.position = 'absolute';
-            console.log(nativeEvent);
             box.style.left = nativeEvent.clientX + 'px';
             box.style.top = nativeEvent.clientY + 'px';
             box.style.width = 'auto';
@@ -47,6 +65,7 @@ class CanvasContainer extends Component {
             box.style.minHeight = '100px';
             box.style.border = '1px solid';
             box.tabIndex = '0';
+            box.style.zIndex = '-10';
 
             box.onkeydown = function(event){
                 if(event.keyCode === 13){
@@ -65,20 +84,13 @@ class CanvasContainer extends Component {
                 event.target.style.border = '0px';
             }
 
-            document.body.appendChild(box);
+            document.getElementById('textboxes').appendChild(box);
             
             this.state.textBoxes.push(box);
 
             window.requestAnimationFrame(() => {
                 box.focus();
             })
-
-            //box.focus();
-
-            // Focus only works in settimeout
-            /*setTimeout(() => {
-                box.focus()
-            }, 0);*/
         }
         else{
             const { offsetX, offsetY } = nativeEvent;
