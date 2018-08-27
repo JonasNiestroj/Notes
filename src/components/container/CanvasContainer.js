@@ -69,12 +69,16 @@ class CanvasContainer extends Component {
             
             this.state.textBoxes.push(box);
 
-            box.focus();
+            window.requestAnimationFrame(() => {
+                box.focus();
+            })
+
+            //box.focus();
 
             // Focus only works in settimeout
-            setTimeout(() => {
+            /*setTimeout(() => {
                 box.focus()
-            }, 0);
+            }, 0);*/
         }
         else{
             const { offsetX, offsetY } = nativeEvent;
