@@ -27,6 +27,9 @@ class CanvasContainer extends Component {
         this.blueClick = this.blueClick.bind(this);
         this.rubberClick = this.rubberClick.bind(this);
         this.textClick = this.textClick.bind(this);
+        this.saveClick = this.saveClick.bind(this);
+        this.loadClick = this.loadClick.bind(this);
+        this.inputChange = this.inputChange.bind(this);
     }
 
     updateCanvas(ref) {
@@ -35,12 +38,11 @@ class CanvasContainer extends Component {
 
     onMouseDown(nativeEvent){
         if(this.state.text){
-            var event = nativeEvent;
             var textBoxFound = false;
             for(var i = 0; i < this.state.textBoxes.length; i++){
                 var item = this.state.textBoxes[i];
-                var mouseX = event.clientX;
-                var mouseY = event.clientY;
+                var mouseX = nativeEvent.clientX;
+                var mouseY = nativeEvent.clientY;
                 var x = item.offsetLeft;
                 var y = item.offsetTop;
                 var xWidth = x + item.offsetWidth;
@@ -172,11 +174,92 @@ class CanvasContainer extends Component {
         this.state.text = true;
     }
 
+    saveClick(){
+        this.download()
+
+    }
+
+    download(){
+        var element = document.createElement('a');
+
+        var data = this.ctx.getImageData(0,0,1500,900);
+
+        var pixelArray = [];
+
+        for(var i = 0; i < data.data.length; i += 4){
+            var red = data.data[i];
+            var green = data.data[i + 1];
+            var blue = data.data[i + 2];
+            var alpha = data.data[i + 3];
+            if(red == 0 && green == 0 && blue == 0){
+                continue;
+            }
+            var index = i;
+            pixelArray.push((index & 0xFF000000) >> 24);
+            pixelArray.push((index & 0x00FF0000) >> 16);
+            pixelArray.push((index & 0x0000FF00) >> 8);
+            pixelArray.push((index & 0x000000FF));
+            pixelArray.push(red);
+            pixelArray.push(green);
+            pixelArray.push(blue);
+            pixelArray.push(alpha);
+        }
+        var blob = new Blob([new Int8Array(pixelArray)], {type: "octet/stream"});
+
+        element.setAttribute('href', URL.createObjectURL(blob));
+        element.setAttribute('download', 'notes.notes');
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
+    loadClick() {
+        var input = document.getElementById('file-input');
+        input.addEventListener('change', this.inputChange, false);
+        input.click();
+    }
+
+    str2ab(str) {
+        var buf = new ArrayBuffer(str.length*1); // 2 bytes for each char
+        var bufView = new Int32Array(buf);
+        for (var i=0, strLen=str.length; i < strLen; i++) {
+          bufView[i] = str.charCodeAt(i);
+        }
+        return buf;
+      }
+
+    inputChange(){
+        var input = document.getElementById('file-input');
+        var reader = new FileReader();
+        reader.onload = (function(theFile) {
+          return function(e) {
+            var arrayBuffer = this.str2ab(e.target.result);
+            var dataArray = new Int32Array(arrayBuffer);
+            var imageData = this.ctx.createImageData(1500, 900);
+            for(var i = 0; i < dataArray.length; i += 8){
+                var position = (dataArray[i] << 24) + (dataArray[i + 1] << 16)
+                     + (dataArray[i + 2] << 8) + (dataArray[i + 3]);
+                imageData.data[position] = dataArray[i + 4];
+                imageData.data[position + 1] = dataArray[i + 5];
+                imageData.data[position + 2] = dataArray[i + 6];
+                imageData.data[position + 3] = dataArray[i + 7];
+            }
+            this.ctx.putImageData(imageData, 0, 0);
+          }.bind(this);
+        }.bind(this))(input.files[0]);
+  
+        reader.readAsBinaryString(input.files[0]);
+    }
+
     render(){
         return (
             <div>
                 <Menu redClick={this.redClick} blueClick={this.blueClick} rubberClick={this.rubberClick}
-                    textClick={this.textClick}></Menu>
+                    textClick={this.textClick} saveClick={this.saveClick} loadClick={this.loadClick}></Menu>
                 <Canvas onMouseDown={this.onMouseDown} endPaintEvent={this.endPaintEvent}
                     onMouseMove={this.onMouseMove} updateCanvas={this.updateCanvas} />
             </div>
