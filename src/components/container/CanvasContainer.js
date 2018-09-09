@@ -2,21 +2,30 @@ import React, { Component } from "react";
 import ReactDOM from "react-dom";
 import Canvas from "../presentational/Canvas";
 import Menu from "../presentational/Menu";
+import reducer from "../../reducers";
+import {createStore} from "redux";
+import {getPaintingModeAction} from "../../actions/paintingMode";
+import {getRubberModeAction} from "../../actions/rubberMode";
+import {getTextModeAction} from "../../actions/textMode";
+
+const initialState = {
+    isPainting: false,
+    color: '#EE92C2',
+    rubber: false,
+    text: false,
+};
+
+const store = createStore(reducer, initialState);
 
 class CanvasContainer extends Component {
     constructor(){
         super();
 
         this.state = {
-            isPainting: false,
             prevPos: { offsetX: 0, offsetY: 0 },
             line: [],
             ctx: null,
             canvas: null,
-            color: '#EE92C2',
-            rubber: false,
-            text: false,
-            textBoxes: []
         };
 
         this.onMouseDown = this.onMouseDown.bind(this);
@@ -37,7 +46,7 @@ class CanvasContainer extends Component {
     }
 
     onMouseDown(nativeEvent){
-        if(this.state.text){
+        if(store.getState().text){
             var textBoxFound = false;
             for(var i = 0; i < this.state.textBoxes.length; i++){
                 var item = this.state.textBoxes[i];
@@ -56,7 +65,7 @@ class CanvasContainer extends Component {
                 nativeEvent.preventDefault();
                 return false;
             }
-            this.isPainting = false;
+            store.isPainting = false;
             var box = document.createElement('div');
             box.style.position = 'absolute';
             box.style.left = nativeEvent.clientX + 'px';
@@ -96,13 +105,13 @@ class CanvasContainer extends Component {
         }
         else{
             const { offsetX, offsetY } = nativeEvent;
-            this.isPainting = true;
+            store.isPainting = true;
             this.prevPos = { offsetX, offsetY }
         }
     }
 
     onMouseMove({ nativeEvent }) {
-        if(this.isPainting){
+        if(store.isPainting){
             const { offsetX, offsetY } = nativeEvent;
             const offsetData = { offsetX, offsetY };
             const positionData = {
@@ -116,24 +125,24 @@ class CanvasContainer extends Component {
     }
 
     endPaintEvent() {
-        if(this.isPainting){
-            this.isPainting = false;
+        if(store.isPainting){
+            store.isPainting = false;
         }
     }
 
-    paint(prevPos, currPos, color) {
+    paint(prevPos, currPos) {
         const { offsetX, offsetY } = currPos;
         const { offsetX: x, offsetY: y } = prevPos;
 
         this.ctx.lineWidth = 5;
         this.ctx.beginPath();
 
-        if(this.state.rubber){
+        if(store.rubber){
             this.ctx.globalCompositeOperation = "destination-out";
         }
         else{
             this.ctx.globalCompositeOperation = "source-over";
-            this.ctx.strokeStyle = this.state.color;
+            this.ctx.strokeStyle = store.getState().color;
         }
 
         this.ctx.moveTo(x, y);
@@ -154,24 +163,19 @@ class CanvasContainer extends Component {
     }
 
     redClick(){
-        this.state.color = '#ff0000';
-        this.state.rubber = false;
-        this.state.text = false;
+        store.dispatch(getPaintingModeAction('#ff0000'));
     }
 
     blueClick(){
-        this.state.color = '#0000ff';
-        this.state.rubber = false;
-        this.state.text = false;
+        store.dispatch(getPaintingModeAction('#0000ff'));
     }
 
     rubberClick(){
-        this.state.rubber = true;
-        this.state.text = false;
+        store.dispatch(getRubberModeAction());
     }
 
     textClick(){
-        this.state.text = true;
+        store.dispatch(getTextModeAction());
     }
 
     saveClick(){
@@ -204,7 +208,6 @@ class CanvasContainer extends Component {
             pixelArray.push(blue);
             pixelArray.push(alpha);
         }
-        console.log(pixelArray);
         var blob = new Blob([new Int8Array(pixelArray)], {type: "octet/stream"});
 
         element.setAttribute('href', URL.createObjectURL(blob));
@@ -249,7 +252,6 @@ class CanvasContainer extends Component {
                 imageData.data[position + 2] = dataArray[i + 6];
                 imageData.data[position + 3] = dataArray[i + 7];
             }
-            console.log(dataArray);
             this.ctx.putImageData(imageData, 0, 0);
           }.bind(this);
         }.bind(this))(input.files[0]);
