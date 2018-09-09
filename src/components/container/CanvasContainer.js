@@ -26,6 +26,7 @@ class CanvasContainer extends Component {
             line: [],
             ctx: null,
             canvas: null,
+            textBoxes: []
         };
 
         this.onMouseDown = this.onMouseDown.bind(this);
@@ -137,7 +138,7 @@ class CanvasContainer extends Component {
         this.ctx.lineWidth = 5;
         this.ctx.beginPath();
 
-        if(store.rubber){
+        if(store.getState().rubber){
             this.ctx.globalCompositeOperation = "destination-out";
         }
         else{
