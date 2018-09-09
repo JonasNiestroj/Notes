@@ -204,6 +204,7 @@ class CanvasContainer extends Component {
             pixelArray.push(blue);
             pixelArray.push(alpha);
         }
+        console.log(pixelArray);
         var blob = new Blob([new Int8Array(pixelArray)], {type: "octet/stream"});
 
         element.setAttribute('href', URL.createObjectURL(blob));
@@ -224,8 +225,8 @@ class CanvasContainer extends Component {
     }
 
     str2ab(str) {
-        var buf = new ArrayBuffer(str.length*1); // 2 bytes for each char
-        var bufView = new Int32Array(buf);
+        var buf = new ArrayBuffer(str.length); // 2 bytes for each char
+        var bufView = new Uint8Array(buf);
         for (var i=0, strLen=str.length; i < strLen; i++) {
           bufView[i] = str.charCodeAt(i);
         }
@@ -238,7 +239,7 @@ class CanvasContainer extends Component {
         reader.onload = (function(theFile) {
           return function(e) {
             var arrayBuffer = this.str2ab(e.target.result);
-            var dataArray = new Int32Array(arrayBuffer);
+            var dataArray = new Uint8Array(arrayBuffer);
             var imageData = this.ctx.createImageData(1500, 900);
             for(var i = 0; i < dataArray.length; i += 8){
                 var position = (dataArray[i] << 24) + (dataArray[i + 1] << 16)
@@ -248,6 +249,7 @@ class CanvasContainer extends Component {
                 imageData.data[position + 2] = dataArray[i + 6];
                 imageData.data[position + 3] = dataArray[i + 7];
             }
+            console.log(dataArray);
             this.ctx.putImageData(imageData, 0, 0);
           }.bind(this);
         }.bind(this))(input.files[0]);
